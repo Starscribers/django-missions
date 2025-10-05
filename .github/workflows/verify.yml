@@ -1,0 +1,205 @@
+name: Python Mission Validator
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+jobs:
+  validate-python-mission:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+          
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: |
+          uv sync --dev
+      
+      - name: Setup environment variables
+        working-directory: ./src
+        run: |
+          # Create .env file for Django settings
+          cat > .env << EOF
+          DEBUG=True
+          SECRET_KEY=test-secret-key-for-ci
+          DATABASE_URL=sqlite:///db.sqlite3
+          ALLOWED_HOSTS=localhost,127.0.0.1
+          SKELLAR_API_ENDPOINT=http://localhost:8000
+          SKELLAR_API_KEY=test-key
+          EOF
+          echo "✅ Environment variables configured with SQLite"
+      
+      - name: Run migrations
+        working-directory: ./src
+        run: |
+          uv run python manage.py migrate --noinput
+          echo "✅ Database migrations completed"
+
+      - name: Extract mission from branch name
+        id: mission
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+          echo "Branch name: $BRANCH_NAME"
+          
+          # Extract chapter and node slugs from branch pattern missions/<chapter-slug>/<node-slug>
+          if [[ $BRANCH_NAME =~ ^missions/([^/]+)/([^/]+)$ ]]; then
+            CHAPTER_SLUG="${BASH_REMATCH[1]}"
+            NODE_SLUG="${BASH_REMATCH[2]}"
+            
+            # Fixed starbook slug
+            STARBOOK_SLUG="django"
+            
+            # Convert node slug from kebab-case to snake_case for pytest marker
+            # Example: landing-page -> landing_page
+            MISSION_MARKER="${NODE_SLUG//-/_}"
+            
+            MISSION_NAME="$NODE_SLUG"
+            
+            echo "chapter_slug=$CHAPTER_SLUG" >> $GITHUB_OUTPUT
+            echo "node_slug=$NODE_SLUG" >> $GITHUB_OUTPUT
+            echo "mission_marker=$MISSION_MARKER" >> $GITHUB_OUTPUT
+            echo "mission_name=$MISSION_NAME" >> $GITHUB_OUTPUT
+            echo "starbook_slug=$STARBOOK_SLUG" >> $GITHUB_OUTPUT
+            echo "valid_mission=true" >> $GITHUB_OUTPUT
+            echo "✅ Detected: Chapter '$CHAPTER_SLUG', Node '$NODE_SLUG' (marker: $MISSION_MARKER)"
+            echo "📍 API path: /api/v1/public/starbooks/$STARBOOK_SLUG/chapters/$CHAPTER_SLUG/nodes/$NODE_SLUG/verify-node-complete/"
+          else
+            echo "valid_mission=false" >> $GITHUB_OUTPUT
+            echo "❌ Branch name does not match pattern: missions/<chapter-slug>/<node-slug>"
+            echo "   Example: missions/chapter-1/node-1"
+            echo "   Example: missions/django-basics/setup-project"
+          fi
+          
+      - name: Run mission-specific tests
+        id: tests
+        working-directory: ./src
+        run: |
+          MISSION_MARKER="${{ steps.mission.outputs.mission_marker }}"
+          VALID_MISSION="${{ steps.mission.outputs.valid_mission }}"
+          MISSION_NUMBER="${{ steps.mission.outputs.mission_number }}"
+          
+          if [ "$VALID_MISSION" == "true" ]; then
+            echo "Running tests for mission marker: -m $MISSION_MARKER"
+            
+            # Run pytest with mission marker (e.g., -m landing_page)
+            # Use uv run to ensure correct Python environment
+            if uv run pytest -m "$MISSION_MARKER" --tb=short -v; then
+              echo "passed=true" >> $GITHUB_OUTPUT
+              echo "exit_code=0" >> $GITHUB_OUTPUT
+              echo "✅ All tests passed for mission $MISSION_NUMBER"
+            else
+              TEST_EXIT_CODE=$?
+              echo "passed=false" >> $GITHUB_OUTPUT
+              echo "exit_code=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
+              echo "❌ Tests failed for mission $MISSION_NUMBER (exit code: $TEST_EXIT_CODE)"
+            fi
+          else
+            echo "Invalid mission branch pattern. Skipping tests."
+            echo "passed=false" >> $GITHUB_OUTPUT
+            echo "exit_code=1" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+ 
+      - name: Submit to Skellar
+        id: submit
+        run: |
+          # Determine validation status - ALL conditions must pass
+          tests_passed="${{ steps.tests.outputs.passed }}"
+          valid_mission="${{ steps.mission.outputs.valid_mission }}"
+          mission_name="${{ steps.mission.outputs.mission_name }}"
+          exit_code="${{ steps.tests.outputs.exit_code }}"
+          
+          # Default exit_code to 1 if empty
+          if [ -z "$exit_code" ]; then
+            exit_code="1"
+          fi
+          
+          # Check if validation criteria are met
+          if [ "$tests_passed" == "true" ] && [ "$valid_mission" == "true" ]; then
+            validation_passed="true"
+            error_msg=""
+          else
+            validation_passed="false"
+            error_msg=""
+            [ "$tests_passed" == "false" ] && error_msg="Tests failed for mission $mission_name. "
+            [ "$valid_mission" == "false" ] && error_msg="${error_msg}Invalid branch pattern - must follow missions/<chapter>/<node> format. "
+          fi
+          
+          # Get slugs for API endpoint
+          starbook_slug="${{ steps.mission.outputs.starbook_slug }}"
+          chapter_slug="${{ steps.mission.outputs.chapter_slug }}"
+          node_slug="${{ steps.mission.outputs.node_slug }}"
+          
+          # Submit to Skellar API - build JSON payload
+          payload=$(cat <<EOF
+          {
+            "repository_owner": "${{ github.repository_owner }}",
+            "repository_name": "${{ github.event.repository.name }}",
+            "pull_request_number": ${{ github.event.pull_request.number }},
+            "commit_sha": "${{ github.event.pull_request.head.sha }}",
+            "github_username": "${{ github.event.pull_request.user.login }}",
+            "username": "${{ github.event.pull_request.user.login }}",
+            "validation_passed": ${validation_passed},
+            "mission_name": "${mission_name}",
+            "test_results": {
+              "pytest_passed": ${tests_passed},
+              "exit_code": ${exit_code}
+            },
+            "branch_validation": {
+              "valid_mission_branch": ${valid_mission},
+              "mission_name": "${mission_name}"
+            },
+            "error_message": "${error_msg}"
+          }
+          EOF
+          )
+          
+          # Use the new API endpoint structure
+          api_url="${{ vars.SKELLAR_API_HOST }}/api/v1/public/starbooks/${starbook_slug}/chapters/${chapter_slug}/nodes/${node_slug}/verify-node-complete/"
+          echo "📡 Calling API: $api_url"
+          echo "📦 Payload: $payload"
+          
+          # Make API call and capture response (set +e to not exit on error)
+          set +e
+          response=$(curl -X POST "$api_url" \
+            -H "Authorization: Bearer ${{ secrets.SKELLAR_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            -w "\n%{http_code}" \
+            -s 2>&1)
+          curl_exit_code=$?
+          set -e
+          
+          # Check if curl command itself failed
+          if [ $curl_exit_code -ne 0 ]; then
+            echo "❌ cURL command failed with exit code: $curl_exit_code"
+            echo "📬 Error output: $response"
+            exit 0  # Don't fail the workflow, just log the error
+          fi
+          
+          # Extract HTTP status code (last line)
+          http_code=$(echo "$response" | tail -n 1)
+          # Extract response body (all but last line)
+          response_body=$(echo "$response" | sed '$d')
+          
+          echo "📬 Response Status: $http_code"
+          echo "📬 Response Body: $response_body"
+          
+          # Check if API call was successful
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "✅ API call successful"
+          else
+            echo "❌ API call failed with status $http_code"
+          fi

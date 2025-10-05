@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Django Project{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Space Theme Styles -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        
+        /* Space background */
+        .space-bg {
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            position: relative;
+            min-height: 100vh;
+        }
+        
+        /* Animated particles */
+        .particle {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .particle.small {
+            width: 2px;
+            height: 2px;
+        }
+        
+        .particle.medium {
+            width: 4px;
+            height: 4px;
+        }
+        
+        .particle.large {
+            width: 6px;
+            height: 6px;
+        }
+        
+        /* Particle animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
+            25% { transform: translateY(-20px) rotate(90deg); opacity: 0.6; }
+            50% { transform: translateY(-10px) rotate(180deg); opacity: 0.8; }
+            75% { transform: translateY(-30px) rotate(270deg); opacity: 0.4; }
+        }
+        
+        /* Glow effects */
+        .glow-blue {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        }
+        
+        .glow-purple {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+        }
+        
+        /* Glass morphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Text effects */
+        .text-glow {
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        .text-gradient-space {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Hover animations */
+        .hover-float:hover {
+            transform: translateY(-5px);
+            transition: transform 0.3s ease;
+        }
+        
+        /* Button styles */
+        .btn-space {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-space::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-space:hover::before {
+            left: 100%;
+        }
+        
+        /* Loading animation for particles */
+        .particle-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        /* Content layer */
+        .content-layer {
+            position: relative;
+            z-index: 10;
+        }
+        
+        /* Responsive utilities */
+        @media (max-width: 768px) {
+            .particle.large {
+                display: none;
+            }
+        }
+        
+        /* Fallback styles when Tailwind is blocked */
+        .min-h-screen { min-height: 100vh; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .p-4 { padding: 1rem; }
+        .max-w-4xl { max-width: 56rem; }
+        .w-full { width: 100%; }
+        .rounded-3xl { border-radius: 1.5rem; }
+        .text-center { text-align: center; }
+        .text-white { color: white; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        .mb-8 { margin-bottom: 2rem; }
+        .font-bold { font-weight: 700; }
+        .grid { display: grid; }
+        .gap-6 { gap: 1.5rem; }
+        
+        @media (min-width: 768px) {
+            .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .md\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .md\\:text-7xl { font-size: 4.5rem; }
+            .md\\:text-3xl { font-size: 1.875rem; }
+            .md\\:p-12 { padding: 3rem; }
+        }
+    </style>
+    
+    <!-- Tailwind Config -->
+    <script>
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            space: {
+                                dark: '#0f0f23',
+                                medium: '#16213e',
+                                light: '#1a1a2e'
+                            }
+                        },
+                        animation: {
+                            'float': 'float 6s ease-in-out infinite',
+                            'glow': 'glow 2s ease-in-out infinite alternate',
+                            'twinkle': 'twinkle 3s ease-in-out infinite'
+                        },
+                        keyframes: {
+                            float: {
+                                '0%, 100%': { transform: 'translateY(0px) rotate(0deg)', opacity: '0.3' },
+                                '25%': { transform: 'translateY(-20px) rotate(90deg)', opacity: '0.6' },
+                                '50%': { transform: 'translateY(-10px) rotate(180deg)', opacity: '0.8' },
+                                '75%': { transform: 'translateY(-30px) rotate(270deg)', opacity: '0.4' }
+                            },
+                            glow: {
+                                '0%': { boxShadow: '0 0 5px #3b82f6, 0 0 10px #3b82f6' },
+                                '100%': { boxShadow: '0 0 10px #3b82f6, 0 0 20px #3b82f6, 0 0 30px #3b82f6' }
+                            },
+                            twinkle: {
+                                '0%, 100%': { opacity: '0.3' },
+                                '50%': { opacity: '1' }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="space-bg">
+    <!-- Particle Container -->
+    <div class="particle-container" id="particles"></div>
+    
+    <!-- Content -->
+    <div class="content-layer">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Particle Generator Script -->
+    <script>
+        // Generate floating particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const particleCount = window.innerWidth < 768 ? 30 : 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = `particle ${['small', 'medium', 'large'][Math.floor(Math.random() * 3)]}`;
+                
+                // Random position
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                
+                // Random animation delay
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
+                
+                // Random opacity
+                particle.style.opacity = Math.random() * 0.6 + 0.2;
+                
+                container.appendChild(particle);
+            }
+        }
+        
+        // Initialize particles when page loads
+        document.addEventListener('DOMContentLoaded', createParticles);
+        
+        // Recreate particles on resize
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('particles');
+            container.innerHTML = '';
+            createParticles();
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

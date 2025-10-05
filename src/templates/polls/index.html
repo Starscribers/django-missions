@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}Space Polls - Vote on Important Questions{% endblock %}
+
+{% block content %}
+<div class="min-h-screen p-4">
+    <div class="max-w-6xl mx-auto">
+        
+        <!-- Header -->
+        <div class="text-center mb-12 pt-8">
+            <h1 class="text-5xl md:text-6xl font-bold text-white text-glow mb-4">
+                🗳️ Space <span class="text-gradient-space">Polls</span>
+            </h1>
+            <p class="text-xl text-blue-200 mb-8">
+                Cast your vote on the most important questions in the galaxy
+            </p>
+            
+            <!-- Stats -->
+            <div class="inline-flex items-center glass rounded-full px-6 py-3 border border-purple-400/30">
+                <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mr-3 text-white font-bold text-sm">
+                    {{ latest_question_list|length }}
+                </div>
+                <span class="text-white font-medium">Active Polls</span>
+            </div>
+        </div>
+
+        {% if latest_question_list %}
+            <!-- Polls Grid -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                {% for question in latest_question_list %}
+                    <div class="glass rounded-2xl p-6 hover-float border border-white/10 group transition-all duration-300">
+                        <!-- Question Header -->
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs text-blue-300 font-medium uppercase tracking-wide">
+                                    Poll #{{ question.id }}
+                                </span>
+                                <span class="text-xs text-gray-400">
+                                    {{ question.pub_date|date:"M d, Y" }}
+                                </span>
+                            </div>
+                            <h3 class="text-lg font-semibold text-white mb-3 line-clamp-2">
+                                {{ question.question_text }}
+                            </h3>
+                        </div>
+                        
+                        <!-- Poll Stats -->
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-300">Total Votes</span>
+                                <span class="text-blue-300 font-semibold">{{ question.total_votes }}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-300">Choices</span>
+                                <span class="text-purple-300 font-semibold">{{ question.choice_set.count }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex gap-2">
+                            <a href="{% url 'polls:detail' question.id %}" 
+                               class="flex-1 btn-space px-4 py-2 text-white font-medium rounded-lg text-center text-sm relative overflow-hidden">
+                                <span class="relative z-10">Vote Now</span>
+                            </a>
+                            {% if question.total_votes > 0 %}
+                                <a href="{% url 'polls:results' question.id %}" 
+                                   class="px-4 py-2 glass text-white font-medium rounded-lg border border-white/20 text-sm hover-float">
+                                    Results
+                                </a>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Recent Badge -->
+                        {% if question.was_published_recently %}
+                            <div class="absolute -top-2 -right-2">
+                                <div class="w-4 h-4 bg-green-400 rounded-full animate-pulse"></div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Load More -->
+            {% if latest_question_list|length >= 10 %}
+                <div class="text-center">
+                    <button class="glass px-8 py-3 text-white font-medium rounded-xl border border-white/20 hover-float">
+                        Load More Polls
+                    </button>
+                </div>
+            {% endif %}
+            
+        {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-16">
+                <div class="glass rounded-3xl p-12 max-w-md mx-auto">
+                    <div class="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="text-3xl">🚀</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-4">No Polls Available</h3>
+                    <p class="text-gray-300 mb-6">
+                        No polls have been created yet. Check back later or contact an administrator to add some polls.
+                    </p>
+                    <a href="/admin/" class="btn-space px-6 py-3 text-white font-semibold rounded-xl relative overflow-hidden">
+                        <span class="relative z-10">Create Polls in Admin</span>
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Back to Home -->
+        <div class="text-center mt-12">
+            <a href="{% url 'landing' %}" 
+               class="inline-flex items-center text-blue-300 hover:text-blue-200 transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                </svg>
+                Back to Mission Control
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Animate poll cards on load
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.glass');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100 + (index * 100));
+        });
+    });
+</script>
+{% endblock %}

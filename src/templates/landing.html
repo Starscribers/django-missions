@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Django Mission Control - Ready for Launch{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-5xl w-full text-center">
+        
+        <!-- Beta Badge -->
+        <div class="mb-8">
+            <div class="inline-flex items-center px-6 py-3 rounded-full glass border border-blue-400/30 text-blue-300 text-sm font-medium hover-float">
+                <span class="w-2 h-2 bg-blue-400 rounded-full mr-3 animate-pulse"></span>
+                ✨ Interactive Django Tutorial - Learn by Building! ✨
+            </div>
+        </div>
+
+        <!-- Main Heading -->
+        <div class="mb-12">
+            <h1 class="text-6xl md:text-8xl font-bold text-white text-glow mb-6">
+                Congrats
+            </h1>
+            <h2 class="text-2xl md:text-4xl font-light text-blue-200 mb-8">
+                Setup complete.
+            </h2>
+            <p class="text-lg text-blue-100/80 max-w-3xl mx-auto">
+                You're all set to explore the Django tutorial with a modern, space-themed twist. Dive into building interactive polls, managing data with Django's admin, and mastering core concepts with hands-on experience.
+            </p>
+        </div>
+
+        <!-- Tutorial Progress Badge -->
+        <div class="mb-16">
+            <div class="inline-flex items-center glass rounded-full px-6 py-3 border border-purple-400/30">
+                <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mr-3 text-white font-bold text-sm">
+                    ✓
+                </div>
+                <span class="text-white font-medium">Django Setup Complete</span>
+                <a href="{% url 'polls:index' %}" class="ml-3 px-3 py-1 bg-green-500/20 rounded-full text-green-300 text-xs font-semibold border border-green-400/30 hover:bg-green-500/30 hover:text-green-200 transition-all duration-200 cursor-pointer no-underline inline-block">
+                    ✓ Ready to Explore
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Load Skellar SDK -->
+<script src="{% static 'skellar-sdk/js/skellar.umd.js' %}"></script>
+
+<script>
+    // Debug: Check if Skellar SDK loaded properly
+    console.log('Skellar SDK loaded:', typeof Skellar !== 'undefined');
+    console.log('SkellarClient available:', typeof Skellar?.SkellarClient !== 'undefined');
+    
+    // Initialize Skellar client with Django settings
+    const skellarClient = new Skellar.SkellarClient({
+        apiToken: '{{ skellar_api_key }}',
+        baseUrl: '{{ skellar_api_endpoint }}'
+    });
+    
+    // Mark node complete function using Skellar SDK
+    async function markNodeComplete() {
+        try {
+            // Show loading state
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '⏳ Checking...';
+            button.disabled = true;
+            
+            // Configuration - with proper values
+            const starbook = 'django';
+            const chapterSlug = 'django-basics';
+            const nodeSlug = 'setup';
+            
+            console.log('Attempting to complete node:', {
+                starbook,
+                chapter: chapterSlug,
+                node: nodeSlug,
+                baseUrl: '{{ skellar_api_endpoint }}'
+            });
+            
+            // Use Skellar SDK to complete the node
+            const result = await skellarClient.completeStarNode(
+                starbook,
+                chapterSlug,
+                nodeSlug,
+                { taskCompleted: true, timestamp: new Date().toISOString() }
+            );
+            
+            // Success handling
+            button.innerHTML = '✅ Complete!';
+            button.classList.remove('bg-green-500/20', 'border-green-400/30');
+            button.classList.add('bg-blue-500/20', 'border-blue-400/30', 'text-blue-300');
+            
+            // Show success message
+            showSuccessMessage('Node marked as complete!');
+            
+            console.log('Node completion result:', result);
+            
+        } catch (error) {
+            console.error('Error marking node complete:', error);
+            
+            // Reset button state
+            button.innerHTML = originalText;
+            button.disabled = false;
+            
+            // Show specific error message based on error type
+            let errorMessage = 'Failed to mark node complete. Please try again.';
+            
+            if (error instanceof Skellar.AuthenticationError) {
+                errorMessage = 'Authentication failed. Please check your API credentials.';
+            } else if (error instanceof Skellar.NotFoundError) {
+                errorMessage = 'Node or constellation not found.';
+            } else if (error instanceof Skellar.ValidationError) {
+                errorMessage = 'Invalid data provided.';
+            } else if (error instanceof Skellar.RateLimitError) {
+                errorMessage = 'Rate limit exceeded. Please try again later.';
+            } else if (error instanceof Skellar.ConnectionError) {
+                errorMessage = 'Connection error. Please check your network.';
+            }
+            
+            showErrorMessage(errorMessage);
+        }
+    }
+    
+    // Get CSRF token from cookies
+    function getCsrfToken() {
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Show success message
+    function showSuccessMessage(message) {
+        const toast = createToast(message, 'success');
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    // Show error message
+    function showErrorMessage(message) {
+        const toast = createToast(message, 'error');
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    // Create toast notification
+    function createToast(message, type) {
+        const toast = document.createElement('div');
+        const bgColor = type === 'success' ? 'bg-green-500/20 border-green-400/30 text-green-300' : 'bg-red-500/20 border-red-400/30 text-red-300';
+        toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-xl glass border ${bgColor} animate-slide-in`;
+        toast.innerHTML = `
+            <div class="flex items-center space-x-2">
+                <span>${type === 'success' ? '✅' : '❌'}</span>
+                <span>${message}</span>
+            </div>
+        `;
+        return toast;
+    }
+
+    // Enhanced interactions
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add staggered animation to feature cards
+        const cards = document.querySelectorAll('.glass');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100 + (index * 100));
+        });
+
+        // Add click effect to buttons
+        const buttons = document.querySelectorAll('button, a');
+        buttons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+                ripple.classList.add('ripple');
+                
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            });
+        });
+
+        // Add particle interaction on mouse move
+        document.addEventListener('mousemove', function(e) {
+            const particles = document.querySelectorAll('.particle');
+            const mouseX = e.clientX / window.innerWidth;
+            const mouseY = e.clientY / window.innerHeight;
+            
+            particles.forEach((particle, index) => {
+                const speed = (index % 3 + 1) * 0.5;
+                const x = (mouseX - 0.5) * speed;
+                const y = (mouseY - 0.5) * speed;
+                
+                particle.style.transform = `translate(${x}px, ${y}px)`;
+            });
+        });
+    });
+    
+    // Tutorial info modal
+    function showTutorialInfo() {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+        modal.innerHTML = `
+            <div class="glass rounded-3xl p-8 max-w-2xl w-full border border-white/20">
+                <div class="text-center mb-6">
+                    <h3 class="text-3xl font-bold text-white mb-2">📚 Django Tutorial Guide</h3>
+                    <p class="text-blue-200">Follow the official Django tutorial with modern enhancements</p>
+                </div>
+                
+                <div class="space-y-4 mb-6">
+                    <div class="flex items-center space-x-3 p-3 bg-white/5 rounded-xl">
+                        <span class="text-2xl">🗳️</span>
+                        <div>
+                            <h4 class="text-white font-semibold">Step 1: Explore Polls</h4>
+                            <p class="text-gray-300 text-sm">See the voting system in action</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 bg-white/5 rounded-xl">
+                        <span class="text-2xl">⚙️</span>
+                        <div>
+                            <h4 class="text-white font-semibold">Step 2: Admin Interface</h4>
+                            <p class="text-gray-300 text-sm">Create polls and manage data</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 bg-white/5 rounded-xl">
+                        <span class="text-2xl">💻</span>
+                        <div>
+                            <h4 class="text-white font-semibold">Step 3: Study the Code</h4>
+                            <p class="text-gray-300 text-sm">Examine models, views, and templates</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-4 justify-center">
+                    <a href="{% url 'polls:index' %}" class="btn-space px-6 py-3 text-white font-semibold rounded-xl relative overflow-hidden">
+                        <span class="relative z-10">Start Learning</span>
+                    </a>
+                    <button onclick="this.closest('.fixed').remove()" class="px-6 py-3 glass text-white font-semibold rounded-xl border border-white/20">
+                        Close
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Close on background click
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+    
+    // Add ripple effect styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0);
+            animation: ripple-animation 0.6s linear;
+            pointer-events: none;
+        }
+        
+        @keyframes ripple-animation {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+        
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        @keyframes slide-in {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .animate-slide-in {
+            animation: slide-in 0.3s ease-out;
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+{% endblock %}

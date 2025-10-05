@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}Results: {{ question.question_text }} - Space Polls{% endblock %}
+
+{% block content %}
+<div class="min-h-screen p-4">
+    <div class="max-w-4xl mx-auto pt-8">
+        
+        <!-- Back Button -->
+        <div class="mb-8">
+            <a href="{% url 'polls:index' %}" 
+               class="inline-flex items-center text-blue-300 hover:text-blue-200 transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                </svg>
+                Back to All Polls
+            </a>
+        </div>
+
+        <!-- Main Results Card -->
+        <div class="glass rounded-3xl p-8 md:p-12 border border-white/10">
+            
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center glass rounded-full px-4 py-2 border border-green-400/30 mb-4">
+                    <div class="w-3 h-3 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                    <span class="text-green-300 text-sm font-medium">Poll Results</span>
+                    <span class="mx-2 text-gray-500">•</span>
+                    <span class="text-gray-400 text-sm">{{ question.pub_date|date:"M d, Y" }}</span>
+                </div>
+                
+                <h1 class="text-3xl md:text-4xl font-bold text-white text-glow mb-4">
+                    {{ question.question_text }}
+                </h1>
+                
+                {% if total_votes > 0 %}
+                    <p class="text-blue-200 text-lg">
+                        {{ total_votes }} vote{{ total_votes|pluralize }} cast
+                    </p>
+                {% else %}
+                    <p class="text-gray-400">
+                        No votes have been cast yet
+                    </p>
+                {% endif %}
+            </div>
+
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="mb-6 p-4 rounded-xl bg-green-500/20 border border-green-400/30 text-green-200">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Results -->
+            {% if question.choice_set.all %}
+                <div class="space-y-4 mb-8">
+                    {% for choice in question.choice_set.all %}
+                        <div class="glass rounded-xl p-6 border border-white/10">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-lg font-semibold text-white">
+                                    {{ choice.choice_text }}
+                                </h3>
+                                <div class="text-right">
+                                    <div class="text-xl font-bold text-purple-300">
+                                        {{ choice.votes }} vote{{ choice.votes|pluralize }}
+                                    </div>
+                                    {% if total_votes > 0 %}
+                                        <div class="text-sm text-gray-400">
+                                            {{ choice.vote_percentage }}%
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Progress Bar -->
+                            <div class="relative">
+                                <div class="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                                    <div class="bg-gradient-to-r from-purple-500 to-blue-500 h-3 rounded-full transition-all duration-1000 ease-out"
+                                         style="width: {% if total_votes > 0 %}{{ choice.vote_percentage }}%{% else %}0%{% endif %}"
+                                         data-width="{% if total_votes > 0 %}{{ choice.vote_percentage }}{% else %}0{% endif %}">
+                                    </div>
+                                </div>
+                                
+                                <!-- Ranking Badge -->
+                                {% if choice.votes > 0 %}
+                                    <div class="absolute -top-1 -right-1">
+                                        {% if forloop.counter == 1 and choice.votes == question.choice_set.all.0.votes %}
+                                            <div class="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                                                <span class="text-xs font-bold text-gray-900">👑</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Stats Summary -->
+                <div class="grid md:grid-cols-3 gap-6 mb-8">
+                    <div class="text-center glass rounded-xl p-4 border border-white/10">
+                        <div class="text-2xl font-bold text-purple-300 mb-1">{{ total_votes }}</div>
+                        <div class="text-sm text-gray-400">Total Votes</div>
+                    </div>
+                    <div class="text-center glass rounded-xl p-4 border border-white/10">
+                        <div class="text-2xl font-bold text-blue-300 mb-1">{{ question.choice_set.count }}</div>
+                        <div class="text-sm text-gray-400">Choices</div>
+                    </div>
+                    <div class="text-center glass rounded-xl p-4 border border-white/10">
+                        <div class="text-2xl font-bold text-green-300 mb-1">
+                            {% if question.was_published_recently %}New{% else %}{{ question.pub_date|timesince }}{% endif %}
+                        </div>
+                        <div class="text-sm text-gray-400">Age</div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="{% url 'polls:detail' question.id %}" 
+                       class="btn-space px-6 py-3 text-white font-semibold rounded-xl text-center relative overflow-hidden">
+                        <span class="relative z-10">🗳️ Vote Again</span>
+                    </a>
+                    <a href="{% url 'polls:index' %}" 
+                       class="px-6 py-3 glass text-white font-semibold rounded-xl border border-white/20 hover-float text-center">
+                        📊 View More Polls
+                    </a>
+                </div>
+                
+            {% else %}
+                <!-- No Choices -->
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl">⚠️</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">No Choices Available</h3>
+                    <p class="text-gray-300 mb-6">
+                        This poll doesn't have any choices yet.
+                    </p>
+                    <a href="{% url 'polls:index' %}" 
+                       class="btn-space px-6 py-3 text-white font-semibold rounded-xl relative overflow-hidden">
+                        <span class="relative z-10">Back to Polls</span>
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Social Share (Future Enhancement) -->
+        <div class="text-center mt-8">
+            <p class="text-gray-400 text-sm mb-4">Share these results:</p>
+            <div class="flex justify-center space-x-4">
+                <button class="w-10 h-10 glass rounded-full flex items-center justify-center text-blue-400 hover:text-blue-300 transition-colors">
+                    <span class="text-lg">📱</span>
+                </button>
+                <button class="w-10 h-10 glass rounded-full flex items-center justify-center text-purple-400 hover:text-purple-300 transition-colors">
+                    <span class="text-lg">🔗</span>
+                </button>
+                <button class="w-10 h-10 glass rounded-full flex items-center justify-center text-green-400 hover:text-green-300 transition-colors">
+                    <span class="text-lg">📤</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Animate progress bars on load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate result cards
+        const resultCards = document.querySelectorAll('.space-y-4 > .glass');
+        resultCards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateX(-20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateX(0)';
+            }, 200 + (index * 150));
+        });
+        
+        // Animate progress bars
+        setTimeout(() => {
+            const progressBars = document.querySelectorAll('[data-width]');
+            progressBars.forEach((bar, index) => {
+                const width = bar.getAttribute('data-width');
+                setTimeout(() => {
+                    bar.style.width = width + '%';
+                }, index * 200);
+            });
+        }, 800);
+        
+        // Add click handlers for social sharing buttons
+        const shareButtons = document.querySelectorAll('.text-center button');
+        shareButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Create ripple effect
+                const ripple = document.createElement('div');
+                ripple.className = 'absolute inset-0 bg-white rounded-full opacity-30 animate-ping';
+                this.style.position = 'relative';
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+                
+                // Future: Add actual sharing functionality
+                console.log('Sharing results...');
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,1 @@
+act pull_request -e .github/events/pull_request.json --env-file .github/events/.env --var-file .github/events/.var --secret-file .github/events/.secrets
