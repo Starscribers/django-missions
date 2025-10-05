@@ -35,7 +35,7 @@
                     ✓
                 </div>
                 <span class="text-white font-medium">Django Setup Complete</span>
-                <a href="{% url 'polls:index' %}" class="ml-3 px-3 py-1 bg-green-500/20 rounded-full text-green-300 text-xs font-semibold border border-green-400/30 hover:bg-green-500/30 hover:text-green-200 transition-all duration-200 cursor-pointer no-underline inline-block">
+                <a onclick="markNodeComplete()" class="ml-3 px-3 py-1 bg-green-500/20 rounded-full text-green-300 text-xs font-semibold border border-green-400/30 hover:bg-green-500/30 hover:text-green-200 transition-all duration-200 cursor-pointer no-underline inline-block">
                     ✓ Ready to Explore
                 </a>
             </div>
@@ -223,63 +223,7 @@
             });
         });
     });
-    
-    // Tutorial info modal
-    function showTutorialInfo() {
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
-        modal.innerHTML = `
-            <div class="glass rounded-3xl p-8 max-w-2xl w-full border border-white/20">
-                <div class="text-center mb-6">
-                    <h3 class="text-3xl font-bold text-white mb-2">📚 Django Tutorial Guide</h3>
-                    <p class="text-blue-200">Follow the official Django tutorial with modern enhancements</p>
-                </div>
-                
-                <div class="space-y-4 mb-6">
-                    <div class="flex items-center space-x-3 p-3 bg-white/5 rounded-xl">
-                        <span class="text-2xl">🗳️</span>
-                        <div>
-                            <h4 class="text-white font-semibold">Step 1: Explore Polls</h4>
-                            <p class="text-gray-300 text-sm">See the voting system in action</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-3 p-3 bg-white/5 rounded-xl">
-                        <span class="text-2xl">⚙️</span>
-                        <div>
-                            <h4 class="text-white font-semibold">Step 2: Admin Interface</h4>
-                            <p class="text-gray-300 text-sm">Create polls and manage data</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-3 p-3 bg-white/5 rounded-xl">
-                        <span class="text-2xl">💻</span>
-                        <div>
-                            <h4 class="text-white font-semibold">Step 3: Study the Code</h4>
-                            <p class="text-gray-300 text-sm">Examine models, views, and templates</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex gap-4 justify-center">
-                    <a href="{% url 'polls:index' %}" class="btn-space px-6 py-3 text-white font-semibold rounded-xl relative overflow-hidden">
-                        <span class="relative z-10">Start Learning</span>
-                    </a>
-                    <button onclick="this.closest('.fixed').remove()" class="px-6 py-3 glass text-white font-semibold rounded-xl border border-white/20">
-                        Close
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        
-        // Close on background click
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                modal.remove();
-            }
-        });
-    }
-    
+
     // Add ripple effect styles
     const style = document.createElement('style');
     style.textContent = `
